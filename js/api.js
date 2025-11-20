@@ -1,5 +1,5 @@
 class APIHelper {
-    constructor(baseURL = 'https://98.80.112.29') {
+    constructor(baseURL = 'http://34.233.25.135:7000') {
         this.baseURL = baseURL;
         this.timeout = 10000;
     }

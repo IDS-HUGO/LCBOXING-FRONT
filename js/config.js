@@ -5,7 +5,7 @@
 const CONFIG = {
     // API Configuration
     API: {
-        BASE_URL: 'https://98.80.112.29',
+        BASE_URL: 'http://34.233.25.135:7000',
         TIMEOUT: 10000, // 10 seconds
         ENDPOINTS: {
             // Authentication

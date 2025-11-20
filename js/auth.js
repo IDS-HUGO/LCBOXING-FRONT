@@ -1,4 +1,4 @@
-const API_BASE_URL = 'https://98.80.112.29';
+const API_BASE_URL = 'http://34.233.25.135:7000';
 
 function showError(message, elementId = 'errorMessage') {
     const errorDiv = document.getElementById(elementId);

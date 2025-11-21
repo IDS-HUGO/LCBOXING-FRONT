@@ -1,3 +1,50 @@
+class NotificationManager {
+    success(message) {
+        this.show(message, 'success');
+    }
+    
+    error(message) {
+        this.show(message, 'error');
+    }
+    
+    warning(message) {
+        this.show(message, 'warning');
+    }
+    
+    info(message) {
+        this.show(message, 'info');
+    }
+    
+    show(message, type = 'info') {
+        // Crear contenedor si no existe
+        let container = document.querySelector('.notification-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.className = 'notification-container';
+            document.body.appendChild(container);
+        }
+        
+        const notification = document.createElement('div');
+        notification.className = `notification notification-${type}`;
+        notification.innerHTML = `
+            <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : type === 'warning' ? 'exclamation-triangle' : 'info-circle'}"></i>
+            <span>${message}</span>
+        `;
+        
+        container.appendChild(notification);
+        
+        // Trigger animation
+        setTimeout(() => notification.classList.add('notification-show'), 10);
+        
+        // Auto remove after 8 seconds
+        setTimeout(() => {
+            notification.classList.remove('notification-show');
+            notification.classList.add('notification-exit');
+            setTimeout(() => notification.remove(), 300);
+        }, 8000);
+    }
+}
+
 class PerfilManager {
     constructor() {
         this.userData = null;
@@ -74,13 +121,33 @@ class PerfilManager {
         const userName = document.getElementById('userName');
         const userRole = document.getElementById('userRole');
         
+        // Construir nombre completo
+        const nombreCompleto = `${this.userData.nombre || ''} ${this.userData.apellidoPaterno || ''} ${this.userData.apellidoMaterno || ''}`.trim() || this.userData.nombreCompleto;
+        
+        // Determinar el rol - primero intenta con idRol, luego con rol (texto)
+        let rolTexto = 'Usuario';
+        if (this.userData.idRol === 1 || this.userData.idRol === '1') {
+            rolTexto = 'Gerente';
+        } else if (this.userData.idRol === 2 || this.userData.idRol === '2') {
+            rolTexto = 'Staff';
+        } else if (this.userData.rol) {
+            // Si no hay idRol pero hay rol como texto
+            const rolUpper = this.userData.rol.toUpperCase();
+            if (rolUpper === 'GERENTE') {
+                rolTexto = 'Gerente';
+            } else if (rolUpper === 'STAFF') {
+                rolTexto = 'Staff';
+            } else {
+                rolTexto = this.userData.rol; // Usar el rol tal cual viene
+            }
+        }
+        
         if (userName) {
-            userName.textContent = this.userData.nombreCompleto || 
-                `${this.userData.nombre} ${this.userData.apellidoPaterno}`;
+            userName.textContent = nombreCompleto;
         }
         
         if (userRole) {
-            userRole.textContent = this.userData.rol || 'Usuario';
+            userRole.textContent = rolTexto;
         }
         
         // Fill form
@@ -96,7 +163,7 @@ class PerfilManager {
         if (apellidoMaterno) apellidoMaterno.value = this.userData.apellidoMaterno || '';
         if (email) email.value = this.userData.email || '';
         if (telefono) telefono.value = this.userData.telefono || '';
-        if (rol) rol.value = this.userData.rol || '';
+        if (rol) rol.value = rolTexto;
         
         // Load notification preferences
         this.loadNotificationPreferences();
@@ -163,11 +230,11 @@ class PerfilManager {
             this.userData.nombreCompleto = `${data.nombre} ${data.apellidoPaterno} ${data.apellidoMaterno}`;
             localStorage.setItem('userData', JSON.stringify(this.userData));
             
-            this.notificationManager.success('Perfil actualizado correctamente');
+            this.notificationManager.success('✅ PERFIL ACTUALIZADO CORRECTAMENTE');
             this.loadUserData();
         } catch (error) {
-            console.error('Error updating profile:', error);
-            this.notificationManager.error('Error al actualizar perfil: ' + error.message);
+            console.error('❌ Error updating profile:', error);
+            this.notificationManager.error('❌ ERROR AL ACTUALIZAR PERFIL: ' + error.message);
         }
     }
 
@@ -179,12 +246,12 @@ class PerfilManager {
         const confirmPassword = document.getElementById('confirmPassword').value;
         
         if (newPassword !== confirmPassword) {
-            this.notificationManager.error('Las contraseñas no coinciden');
+            this.notificationManager.error('❌ Las contraseñas no coinciden');
             return;
         }
         
         if (newPassword.length < 8) {
-            this.notificationManager.error('La contraseña debe tener al menos 8 caracteres');
+            this.notificationManager.error('❌ La contraseña debe tener al menos 8 caracteres');
             return;
         }
         
@@ -192,11 +259,11 @@ class PerfilManager {
             // Note: You'll need to implement a change password endpoint in your API
             // await this.apiHelper.changePassword({ currentPassword, newPassword });
             
-            this.notificationManager.success('Contraseña actualizada correctamente');
+            this.notificationManager.success('✅ CONTRASEÑA ACTUALIZADA CORRECTAMENTE');
             document.getElementById('passwordForm').reset();
         } catch (error) {
-            console.error('Error updating password:', error);
-            this.notificationManager.error('Error al actualizar contraseña: ' + error.message);
+            console.error('❌ Error updating password:', error);
+            this.notificationManager.error('❌ ERROR AL ACTUALIZAR CONTRASEÑA: ' + error.message);
         }
     }
 
@@ -213,7 +280,7 @@ class PerfilManager {
         // Save to localStorage
         localStorage.setItem('notificationPreferences', JSON.stringify(preferences));
         
-        this.notificationManager.success('Preferencias guardadas correctamente');
+        this.notificationManager.success('✅ Preferencias guardadas correctamente');
     }
 
     startClock() {

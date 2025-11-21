@@ -19,6 +19,35 @@ function showLoading(show = true) {
     }
 }
 
+function showNotification(message, type = 'info') {
+    // Crear contenedor si no existe
+    let container = document.querySelector('.notification-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.className = 'notification-container';
+        document.body.appendChild(container);
+    }
+    
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.innerHTML = `
+        <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : type === 'warning' ? 'exclamation-triangle' : 'info-circle'}"></i>
+        <span>${message}</span>
+    `;
+    
+    container.appendChild(notification);
+    
+    // Trigger animation
+    setTimeout(() => notification.classList.add('notification-show'), 10);
+    
+    // Auto remove after 8 seconds
+    setTimeout(() => {
+        notification.classList.remove('notification-show');
+        notification.classList.add('notification-exit');
+        setTimeout(() => notification.remove(), 300);
+    }, 8000);
+}
+
 function saveToken(token) {
     localStorage.setItem('authToken', token);
 }
@@ -42,13 +71,14 @@ function getUserData() {
 
 function redirectToDashboard(role) {
     // Redirigir según el rol del usuario
-    console.log('Redirecting to dashboard for role:', role);
+    console.log('Redirecting to dashboard for role:', role, 'type:', typeof role);
     
-    let dashboardUrl = 'dashboard-staff.html'; // default
+    let dashboardUrl = 'dashboard-staff.html'; // default para Staff (idRol = 2)
     
-    if (role === 'GERENTE' || role === 'Gerente' || role === 'gerente' || role === 1) {
+    // Manejar tanto número como string
+    if (role === 1 || role === '1' || role === 'GERENTE' || role === 'Gerente' || role === 'gerente') {
         dashboardUrl = 'dashboard-gerente.html';
-    } else if (role === 'Staff' || role === 'STAFF' || role === 'staff' || role === 2) {
+    } else if (role === 2 || role === '2' || role === 'Staff' || role === 'STAFF' || role === 'staff') {
         dashboardUrl = 'dashboard-staff.html';
     }
     
@@ -106,12 +136,20 @@ if (document.getElementById('loginForm')) {
             // Mostrar mensaje de éxito
             console.log('Login exitoso:', data.usuario);
             
-            // Redirigir según el rol inmediatamente
-            redirectToDashboard(data.usuario.rol);
+            // Mostrar notificación de éxito
+            showNotification('✅ INICIO DE SESIÓN CORRECTO - Bienvenido ' + data.usuario.nombre, 'success');
+            
+            // Redirigir según el rol después de un breve delay
+            setTimeout(() => {
+                // Intentar usar idRol primero, luego rol como fallback
+                const roleToUse = data.usuario.idRol || data.usuario.rol;
+                redirectToDashboard(roleToUse);
+            }, 2500);
             
         } catch (error) {
             console.error('Error:', error);
             showError(error.message || 'Error al conectar con el servidor');
+            showNotification('❌ ' + (error.message || 'Error al iniciar sesión'), 'error');
         } finally {
             showLoading(false);
         }
@@ -149,13 +187,23 @@ if (document.getElementById('registerForm')) {
             return;
         }
         
-        if (!formData.nombre || !formData.apellidoPaterno || !formData.apellidoMaterno) {
-            showError('Por favor, completa tu nombre completo');
+        if (!formData.nombre || !isValidName(formData.nombre)) {
+            showError('El nombre solo puede contener letras y espacios (mínimo 2 caracteres)');
+            return;
+        }
+        
+        if (!formData.apellidoPaterno || !isValidName(formData.apellidoPaterno)) {
+            showError('El apellido paterno solo puede contener letras y espacios (mínimo 2 caracteres)');
+            return;
+        }
+        
+        if (!formData.apellidoMaterno || !isValidName(formData.apellidoMaterno)) {
+            showError('El apellido materno solo puede contener letras y espacios (mínimo 2 caracteres)');
             return;
         }
         
         if (!isValidEmail(formData.email)) {
-            showError('Por favor, ingresa un correo válido');
+            showError('Por favor, ingresa un correo electrónico válido');
             return;
         }
         
@@ -169,8 +217,13 @@ if (document.getElementById('registerForm')) {
             return;
         }
         
-        if (formData.password.length < 8) {
-            showError('La contraseña debe tener al menos 8 caracteres');
+        if (!isValidAge(formData.fechaNacimiento)) {
+            showError('Debes tener al menos 5 años de edad');
+            return;
+        }
+        
+        if (!isValidPassword(formData.password)) {
+            showError('La contraseña debe tener al menos 8 caracteres, incluir mayúsculas, minúsculas y números');
             return;
         }
         
@@ -207,15 +260,19 @@ if (document.getElementById('registerForm')) {
             
             // Mostrar mensaje de éxito
             console.log('Registro exitoso:', data.usuario);
+            showNotification('✅ REGISTRO EXITOSO - Bienvenido ' + data.usuario.nombre, 'success');
             
             // Redirigir según el rol
             setTimeout(() => {
-                redirectToDashboard(data.usuario.rol);
-            }, 500);
+                // Intentar usar idRol primero, luego rol como fallback
+                const roleToUse = data.usuario.idRol || data.usuario.rol;
+                redirectToDashboard(roleToUse);
+            }, 2500);
             
         } catch (error) {
             console.error('Error:', error);
             showError(error.message || 'Error al conectar con el servidor');
+            showNotification('❌ ' + (error.message || 'Error en el registro'), 'error');
         } finally {
             showLoading(false);
         }
@@ -227,13 +284,38 @@ if (document.getElementById('registerForm')) {
 // ==========================================
 
 function isValidEmail(email) {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     return emailRegex.test(email);
 }
 
 function isValidPhone(phone) {
     const phoneRegex = /^[0-9]{10}$/;
     return phoneRegex.test(phone.replace(/\s/g, ''));
+}
+
+function isValidName(name) {
+    const nameRegex = /^[a-zA-ZÁÉÍÓÚáéíóúÑñ\s]+$/;
+    return nameRegex.test(name) && name.trim().length >= 2;
+}
+
+function isValidPassword(password) {
+    // Mínimo 8 caracteres, al menos una mayúscula, una minúscula y un número
+    return password.length >= 8 && 
+           /[A-Z]/.test(password) && 
+           /[a-z]/.test(password) && 
+           /[0-9]/.test(password);
+}
+
+function isValidAge(fechaNacimiento) {
+    const hoy = new Date();
+    const nacimiento = new Date(fechaNacimiento);
+    const edad = hoy.getFullYear() - nacimiento.getFullYear();
+    const mes = hoy.getMonth() - nacimiento.getMonth();
+    
+    if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) {
+        return edad - 1 >= 5; // Mínimo 5 años
+    }
+    return edad >= 5;
 }
 
 // ==========================================

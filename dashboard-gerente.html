@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="styles/styles.css">
     <link rel="stylesheet" href="styles/dashboard.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body class="dashboard-body">
     <!-- Sidebar -->
@@ -421,30 +422,105 @@
 
         <!-- Reportes Section -->
         <section id="section-reportes" class="content-section">
-            <div class="reports-grid">
-                <div class="report-card">
-                    <i class="fas fa-chart-line"></i>
-                    <h3>Ingresos Mensuales</h3>
-                    <p>Reporte detallado de ingresos</p>
-                    <button class="btn btn-secondary">Generar</button>
+            <div class="reports-header">
+                <h2><i class="fas fa-chart-bar"></i> Reportes y Estadísticas</h2>
+                <div class="reports-filters">
+                    <select id="reportPeriodo" class="filter-select">
+                        <option value="7">Últimos 7 días</option>
+                        <option value="30" selected>Último mes</option>
+                        <option value="90">Últimos 3 meses</option>
+                        <option value="365">Último año</option>
+                    </select>
+                    <button class="btn btn-primary" onclick="loadReportes()">
+                        <i class="fas fa-sync-alt"></i> Actualizar
+                    </button>
                 </div>
-                <div class="report-card">
-                    <i class="fas fa-users"></i>
-                    <h3>Atletas</h3>
-                    <p>Estadísticas de atletas</p>
-                    <button class="btn btn-secondary">Generar</button>
+            </div>
+
+            <!-- Gráficas Principales -->
+            <div class="charts-grid">
+                <!-- Gráfica de Ingresos -->
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3><i class="fas fa-dollar-sign"></i> Ingresos Mensuales</h3>
+                        <span class="chart-total" id="totalIngresos">$0</span>
+                    </div>
+                    <canvas id="ingresosChart"></canvas>
                 </div>
-                <div class="report-card">
-                    <i class="fas fa-calendar"></i>
-                    <h3>Asistencias</h3>
-                    <p>Reporte de asistencias</p>
-                    <button class="btn btn-secondary">Generar</button>
+
+                <!-- Gráfica de Asistencias -->
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3><i class="fas fa-calendar-check"></i> Asistencias por Día</h3>
+                        <span class="chart-total" id="totalAsistencias">0</span>
+                    </div>
+                    <canvas id="asistenciasChart"></canvas>
                 </div>
-                <div class="report-card">
-                    <i class="fas fa-id-card"></i>
-                    <h3>Membresías</h3>
-                    <p>Estado de membresías</p>
-                    <button class="btn btn-secondary">Generar</button>
+
+                <!-- Gráfica de Membresías por Tipo -->
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3><i class="fas fa-id-card"></i> Membresías por Tipo</h3>
+                        <span class="chart-total" id="totalMembresias">0</span>
+                    </div>
+                    <canvas id="membresiasChart"></canvas>
+                </div>
+
+                <!-- Gráfica de Estado de Membresías -->
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3><i class="fas fa-chart-pie"></i> Estado de Membresías</h3>
+                    </div>
+                    <canvas id="estadoMembresiasChart"></canvas>
+                </div>
+
+                <!-- Gráfica de Métodos de Pago -->
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3><i class="fas fa-credit-card"></i> Métodos de Pago</h3>
+                    </div>
+                    <canvas id="metodosPagoChart"></canvas>
+                </div>
+
+                <!-- Gráfica de Atletas Nuevos -->
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3><i class="fas fa-user-plus"></i> Atletas Nuevos</h3>
+                        <span class="chart-total" id="totalAtletasNuevos">0</span>
+                    </div>
+                    <canvas id="atletasChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Estadísticas Detalladas -->
+            <div class="stats-detailed-grid">
+                <div class="stat-detail-card">
+                    <i class="fas fa-trophy"></i>
+                    <div>
+                        <h4>Atleta Más Asistente</h4>
+                        <p id="topAtleta">Cargando...</p>
+                    </div>
+                </div>
+                <div class="stat-detail-card">
+                    <i class="fas fa-clock"></i>
+                    <div>
+                        <h4>Hora Pico</h4>
+                        <p id="horaPico">Cargando...</p>
+                    </div>
+                </div>
+                <div class="stat-detail-card">
+                    <i class="fas fa-percent"></i>
+                    <div>
+                        <h4>Tasa de Asistencia</h4>
+                        <p id="tasaAsistencia">Cargando...</p>
+                    </div>
+                </div>
+                <div class="stat-detail-card">
+                    <i class="fas fa-calendar-times"></i>
+                    <div>
+                        <h4>Membresías por Vencer</h4>
+                        <p id="membresiasVencer">Cargando...</p>
+                    </div>
                 </div>
             </div>
         </section>

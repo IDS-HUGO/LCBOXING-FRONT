@@ -1,16 +1,50 @@
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('🔄 Iniciando carga de modales...');
     loadModalsHTML();
 });
 
 // Cargar el HTML de los modales
 function loadModalsHTML() {
+    const container = document.getElementById('modalsContainer');
+    if (!container) {
+        console.error('❌ No se encontró el contenedor de modales (modalsContainer)');
+        return;
+    }
+    
     fetch('modals/modals-content.html')
-        .then(response => response.text())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Error HTTP: ' + response.status);
+            }
+            return response.text();
+        })
         .then(html => {
-            document.getElementById('modalsContainer').innerHTML = html;
+            container.innerHTML = html;
+            console.log('✅ Modales cargados correctamente');
+            
+            // Verificar que el modal de confirmación existe
+            const confirmModal = document.getElementById('confirmModal');
+            if (confirmModal) {
+                console.log('✅ Modal de confirmación encontrado');
+            } else {
+                console.error('❌ Modal de confirmación NO encontrado');
+            }
+            
             initializeModalForms();
         })
-        .catch(error => console.error('Error cargando modales:', error));
+        .catch(error => {
+            console.error('❌ Error cargando modales:', error);
+            // Intentar cargar desde ruta alternativa
+            console.log('🔄 Intentando ruta alternativa...');
+            fetch('./modals/modals-content.html')
+                .then(response => response.text())
+                .then(html => {
+                    container.innerHTML = html;
+                    console.log('✅ Modales cargados desde ruta alternativa');
+                    initializeModalForms();
+                })
+                .catch(err => console.error('❌ Error en ruta alternativa:', err));
+        });
 }
 
 // Inicializar formularios de modales
@@ -133,14 +167,78 @@ async function loadAtletaData(atletaId) {
 async function handleAtletaSubmit(e) {
     e.preventDefault();
     
+    const nombre = document.getElementById('atletaNombre').value.trim();
+    const apellidoPaterno = document.getElementById('atletaApellidoPaterno').value.trim();
+    const apellidoMaterno = document.getElementById('atletaApellidoMaterno').value.trim();
+    const email = document.getElementById('atletaEmail').value.trim();
+    const telefono = document.getElementById('atletaTelefono').value.trim();
+    const fechaNacimiento = document.getElementById('atletaFechaNacimiento').value;
+    
+    // Validaciones
+    const nameRegex = /^[a-zA-ZÁÉÍÓÚáéíóúÑñ\s]+$/;
+    const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    const phoneRegex = /^[0-9]{10}$/;
+    
+    if (!nombre || nombre.length < 2 || !nameRegex.test(nombre)) {
+        showNotification('⚠️ El nombre solo puede contener letras y espacios (mínimo 2 caracteres)', 'error');
+        document.getElementById('atletaNombre').focus();
+        return;
+    }
+    
+    if (!apellidoPaterno || apellidoPaterno.length < 2 || !nameRegex.test(apellidoPaterno)) {
+        showNotification('⚠️ El apellido paterno solo puede contener letras y espacios (mínimo 2 caracteres)', 'error');
+        document.getElementById('atletaApellidoPaterno').focus();
+        return;
+    }
+    
+    if (!apellidoMaterno || apellidoMaterno.length < 2 || !nameRegex.test(apellidoMaterno)) {
+        showNotification('⚠️ El apellido materno solo puede contener letras y espacios (mínimo 2 caracteres)', 'error');
+        document.getElementById('atletaApellidoMaterno').focus();
+        return;
+    }
+    
+    if (!email || !emailRegex.test(email)) {
+        showNotification('⚠️ Por favor, ingresa un correo electrónico válido', 'error');
+        document.getElementById('atletaEmail').focus();
+        return;
+    }
+    
+    if (!telefono || !phoneRegex.test(telefono.replace(/\s/g, ''))) {
+        showNotification('⚠️ Por favor, ingresa un teléfono válido de 10 dígitos', 'error');
+        document.getElementById('atletaTelefono').focus();
+        return;
+    }
+    
+    if (!fechaNacimiento) {
+        showNotification('⚠️ Por favor, ingresa la fecha de nacimiento', 'error');
+        document.getElementById('atletaFechaNacimiento').focus();
+        return;
+    }
+    
+    // Validar edad mínima (5 años)
+    const hoy = new Date();
+    const nacimiento = new Date(fechaNacimiento);
+    const edad = hoy.getFullYear() - nacimiento.getFullYear();
+    const mes = hoy.getMonth() - nacimiento.getMonth();
+    let edadReal = edad;
+    
+    if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) {
+        edadReal = edad - 1;
+    }
+    
+    if (edadReal < 5) {
+        showNotification('⚠️ El atleta debe tener al menos 5 años de edad', 'error');
+        return;
+    }
+    
     const atletaData = {
-        nombre: document.getElementById('atletaNombre').value,
-        apellidoPaterno: document.getElementById('atletaApellidoPaterno').value,
-        apellidoMaterno: document.getElementById('atletaApellidoMaterno').value,
-        fechaNacimiento: document.getElementById('atletaFechaNacimiento').value,
+        nombre: nombre,
+        apellidoPaterno: apellidoPaterno,
+        apellidoMaterno: apellidoMaterno,
+        fechaNacimiento: fechaNacimiento,
         genero: document.getElementById('atletaGenero').value,
-        email: document.getElementById('atletaEmail').value,
-        telefono: document.getElementById('atletaTelefono').value,
+        email: email,
+        telefono: telefono,
         notas: document.getElementById('atletaNotas').value,
         activo: true
     };
@@ -151,11 +249,11 @@ async function handleAtletaSubmit(e) {
         if (editingAtletaId) {
             await api.updateAthlete(editingAtletaId, atletaData);
             atletaId = editingAtletaId;
-            showNotification('Atleta actualizado exitosamente', 'success');
+            showNotification('✅ ATLETA ACTUALIZADO CORRECTAMENTE', 'success');
         } else {
             const response = await api.createAthlete(atletaData);
             atletaId = response.idAtleta || response.id;
-            showNotification('Atleta creado exitosamente', 'success');
+            showNotification('✅ SE HA REGISTRADO AL ATLETA CORRECTAMENTE', 'success');
         }
         
         // Guardar datos médicos solo si hay al menos un campo lleno
@@ -198,8 +296,8 @@ async function handleAtletaSubmit(e) {
         if (typeof loadDashboardStats === 'function') loadDashboardStats();
         
     } catch (error) {
-        showNotification('Error al guardar atleta: ' + error.message, 'error');
-        console.error(error);
+        console.error('❌ Error al guardar atleta:', error);
+        showNotification('❌ ERROR AL REGISTRAR ATLETA: ' + error.message, 'error');
     }
 }
 
@@ -390,11 +488,11 @@ async function handleMembresiaSubmit(e) {
         if (editingMembresiaId) {
             const result = await api.updateMembership(editingMembresiaId, membresiaData);
             console.log('Respuesta actualización:', result);
-            showNotification('Membresía actualizada exitosamente', 'success');
+            showNotification('✅ MEMBRESÍA ACTUALIZADA CORRECTAMENTE', 'success');
         } else {
             const result = await api.createMembership(membresiaData);
             console.log('Respuesta creación:', result);
-            showNotification('Membresía creada exitosamente', 'success');
+            showNotification('✅ SE HA REGISTRADO LA MEMBRESÍA CORRECTAMENTE', 'success');
         }
         
         closeMembresiaModal();
@@ -404,7 +502,7 @@ async function handleMembresiaSubmit(e) {
     } catch (error) {
         console.error('Error completo al guardar membresía:', error);
         const errorMsg = error.message || 'Error desconocido';
-        showNotification('Error al guardar membresía: ' + errorMsg, 'error');
+        showNotification('❌ ERROR AL REGISTRAR MEMBRESÍA: ' + errorMsg, 'error');
     }
 }
 
@@ -485,22 +583,31 @@ async function handlePagoSubmit(e) {
     const metodoPagoText = document.getElementById('pagoMetodo').value;
     
     // Validar campos requeridos
+    
+    // Validaciones con focus
     if (!idMembresia || isNaN(idMembresia)) {
         showNotification('⚠️ Debe seleccionar una membresía', 'error');
+        document.getElementById('pagoMembresia').focus();
         return;
     }
     
-    if (isNaN(monto) || monto <= 0) {
+    if (!monto || isNaN(monto) || monto <= 0) {
         showNotification('⚠️ El monto debe ser mayor a 0', 'error');
+        document.getElementById('pagoMonto').focus();
+        return;
+    }
+    
+    if (monto > 999999.99) {
+        showNotification('⚠️ El monto es demasiado grande', 'error');
+        document.getElementById('pagoMonto').focus();
         return;
     }
     
     if (!metodoPagoText) {
         showNotification('⚠️ Debe seleccionar un método de pago', 'error');
+        document.getElementById('pagoMetodo').focus();
         return;
-    }
-    
-    // Mapear texto del método de pago a ID
+    }    // Mapear texto del método de pago a ID
     const metodoPagoMap = {
         'Efectivo': 1,
         'EFECTIVO': 1,
@@ -535,15 +642,15 @@ async function handlePagoSubmit(e) {
     
     try {
         await api.createPayment(pagoData);
-        showNotification('Pago registrado exitosamente', 'success');
+        showNotification('✅ SE HA REGISTRADO EL PAGO CORRECTAMENTE', 'success');
         
         closePagoModal();
         if (typeof loadPagos === 'function') loadPagos();
         if (typeof loadDashboardStats === 'function') loadDashboardStats();
         
     } catch (error) {
-        showNotification('Error al registrar pago: ' + error.message, 'error');
-        console.error(error);
+        console.error('❌ Error al registrar pago:', error);
+        showNotification('❌ ERROR AL REGISTRAR PAGO: ' + error.message, 'error');
     }
 }
 
@@ -613,14 +720,14 @@ async function handleAsistenciaSubmit(e) {
         console.log('Datos de asistencia a enviar:', asistenciaData);
         
         await api.registerEntry(asistenciaData);
-        showNotification('✅ Entrada registrada exitosamente', 'success');
+        showNotification('✅ SE HA REGISTRADO LA ENTRADA CORRECTAMENTE', 'success');
         
         closeAsistenciaModal();
         if (typeof loadAsistencias === 'function') loadAsistencias();
         if (typeof loadDashboardStats === 'function') loadDashboardStats();
         
     } catch (error) {
-        showNotification('Error al registrar entrada: ' + error.message, 'error');
+        showNotification('❌ ERROR AL REGISTRAR ENTRADA: ' + error.message, 'error');
         console.error('Error completo:', error);
     }
 }
@@ -663,15 +770,16 @@ async function handleSalidaSubmit(e) {
             horaSalida: `${horaSalidaValue}:00`
         });
         
-        showNotification('Salida registrada exitosamente', 'success');
+        showNotification('✅ SE HA REGISTRADO LA SALIDA CORRECTAMENTE', 'success');
         
         closeSalidaModal();
         if (typeof loadAsistencias === 'function') loadAsistencias();
         if (typeof loadDashboardStats === 'function') loadDashboardStats();
+        if (typeof loadAtletasEnBox === 'function') loadAtletasEnBox();
         
     } catch (error) {
-        showNotification('Error al registrar salida: ' + error.message, 'error');
-        console.error(error);
+        console.error('❌ Error al registrar salida:', error);
+        showNotification('❌ ERROR AL REGISTRAR SALIDA: ' + error.message, 'error');
     }
 }
 
@@ -741,17 +849,86 @@ async function loadUsuarioData(usuarioId) {
 async function handleUsuarioSubmit(e) {
     e.preventDefault();
     
+    const nombre = document.getElementById('usuarioNombre').value.trim();
+    const apellidoPaterno = document.getElementById('usuarioApellidoPaterno').value.trim();
+    const apellidoMaterno = document.getElementById('usuarioApellidoMaterno').value.trim();
+    const email = document.getElementById('usuarioEmail').value.trim();
+    const telefono = document.getElementById('usuarioTelefono').value.trim();
+    const fechaNacimiento = document.getElementById('usuarioFechaNacimiento').value;
+    const password = document.getElementById('usuarioPassword').value;
+    
+    // Validaciones
+    const nameRegex = /^[a-zA-ZÁÉÍÓÚáéíóúÑñ\s]+$/;
+    const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    const phoneRegex = /^[0-9]{10}$/;
+    
+    if (!nombre || nombre.length < 2 || !nameRegex.test(nombre)) {
+        showNotification('⚠️ El nombre solo puede contener letras y espacios (mínimo 2 caracteres)', 'error');
+        document.getElementById('usuarioNombre').focus();
+        return;
+    }
+    
+    if (!apellidoPaterno || apellidoPaterno.length < 2 || !nameRegex.test(apellidoPaterno)) {
+        showNotification('⚠️ El apellido paterno solo puede contener letras y espacios (mínimo 2 caracteres)', 'error');
+        document.getElementById('usuarioApellidoPaterno').focus();
+        return;
+    }
+    
+    if (!apellidoMaterno || apellidoMaterno.length < 2 || !nameRegex.test(apellidoMaterno)) {
+        showNotification('⚠️ El apellido materno solo puede contener letras y espacios (mínimo 2 caracteres)', 'error');
+        document.getElementById('usuarioApellidoMaterno').focus();
+        return;
+    }
+    
+    if (!email || !emailRegex.test(email)) {
+        showNotification('⚠️ Por favor, ingresa un correo electrónico válido', 'error');
+        document.getElementById('usuarioEmail').focus();
+        return;
+    }
+    
+    if (!telefono || !phoneRegex.test(telefono.replace(/\s/g, ''))) {
+        showNotification('⚠️ Por favor, ingresa un teléfono válido de 10 dígitos', 'error');
+        document.getElementById('usuarioTelefono').focus();
+        return;
+    }
+    
+    if (!fechaNacimiento) {
+        showNotification('⚠️ Por favor, ingresa la fecha de nacimiento', 'error');
+        document.getElementById('usuarioFechaNacimiento').focus();
+        return;
+    }
+    
+    // Validar contraseña solo si se está creando un nuevo usuario o si se ingresó una contraseña
+    if (!editingUsuarioId && !password) {
+        showNotification('⚠️ La contraseña es requerida para nuevos usuarios', 'error');
+        document.getElementById('usuarioPassword').focus();
+        return;
+    }
+    
+    if (password && password.length > 0) {
+        if (password.length < 8) {
+            showNotification('⚠️ La contraseña debe tener al menos 8 caracteres', 'error');
+            document.getElementById('usuarioPassword').focus();
+            return;
+        }
+        
+        if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) {
+            showNotification('⚠️ La contraseña debe incluir mayúsculas, minúsculas y números', 'error');
+            document.getElementById('usuarioPassword').focus();
+            return;
+        }
+    }
+    
     const usuarioData = {
-        nombre: document.getElementById('usuarioNombre').value,
-        apellidoPaterno: document.getElementById('usuarioApellidoPaterno').value,
-        apellidoMaterno: document.getElementById('usuarioApellidoMaterno').value,
-        email: document.getElementById('usuarioEmail').value,
-        telefono: document.getElementById('usuarioTelefono').value,
-        fechaNacimiento: document.getElementById('usuarioFechaNacimiento').value,
+        nombre: nombre,
+        apellidoPaterno: apellidoPaterno,
+        apellidoMaterno: apellidoMaterno,
+        email: email,
+        telefono: telefono,
+        fechaNacimiento: fechaNacimiento,
         idRol: parseInt(document.getElementById('usuarioRol').value)
     };
     
-    const password = document.getElementById('usuarioPassword').value;
     if (password) {
         usuarioData.password = password;
     }
@@ -759,18 +936,18 @@ async function handleUsuarioSubmit(e) {
     try {
         if (editingUsuarioId) {
             await api.updateUser(editingUsuarioId, usuarioData);
-            showNotification('Usuario actualizado exitosamente', 'success');
+            showNotification('✅ USUARIO ACTUALIZADO CORRECTAMENTE', 'success');
         } else {
             await api.register(usuarioData);
-            showNotification('Usuario creado exitosamente', 'success');
+            showNotification('✅ SE HA REGISTRADO EL USUARIO CORRECTAMENTE', 'success');
         }
         
         closeUsuarioModal();
         if (typeof loadUsuarios === 'function') loadUsuarios();
         
     } catch (error) {
-        showNotification('Error al guardar usuario: ' + error.message, 'error');
-        console.error(error);
+        console.error('❌ Error al guardar usuario:', error);
+        showNotification('❌ ERROR AL REGISTRAR USUARIO: ' + error.message, 'error');
     }
 }
 
@@ -780,18 +957,42 @@ async function handleUsuarioSubmit(e) {
 let confirmCallback = null;
 
 function openConfirmModal(message, callback) {
+    console.log('⚠️ Abriendo modal de confirmación:', message);
     confirmCallback = callback;
-    document.getElementById('confirmMessage').textContent = message;
-    document.getElementById('confirmModal').style.display = 'flex';
     
-    document.getElementById('confirmButton').onclick = function() {
+    const modal = document.getElementById('confirmModal');
+    const messageElement = document.getElementById('confirmMessage');
+    const confirmButton = document.getElementById('confirmButton');
+    
+    if (!modal || !messageElement || !confirmButton) {
+        console.error('❌ Elementos del modal de confirmación no encontrados');
+        // Si no hay modal, ejecutar directamente el callback
+        if (confirm(message)) {
+            callback();
+        }
+        return;
+    }
+    
+    messageElement.textContent = message;
+    modal.style.display = 'flex';
+    
+    // Remover eventos anteriores y agregar nuevo
+    const newButton = confirmButton.cloneNode(true);
+    confirmButton.parentNode.replaceChild(newButton, confirmButton);
+    
+    newButton.onclick = function() {
+        console.log('✅ Confirmación aceptada');
         if (confirmCallback) confirmCallback();
         closeConfirmModal();
     };
 }
 
 function closeConfirmModal() {
-    document.getElementById('confirmModal').style.display = 'none';
+    console.log('🚫 Cerrando modal de confirmación');
+    const modal = document.getElementById('confirmModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
     confirmCallback = null;
 }
 
@@ -889,18 +1090,30 @@ window.addEventListener('click', function(event) {
 
 // Notificaciones
 function showNotification(message, type = 'info') {
+    // Crear contenedor si no existe
+    let container = document.querySelector('.notification-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.className = 'notification-container';
+        document.body.appendChild(container);
+    }
+    
     const notification = document.createElement('div');
     notification.className = `notification notification-${type}`;
     notification.innerHTML = `
-        <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+        <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : type === 'warning' ? 'exclamation-triangle' : 'info-circle'}"></i>
         <span>${message}</span>
     `;
     
-    document.body.appendChild(notification);
-    setTimeout(() => notification.classList.add('show'), 10);
+    container.appendChild(notification);
     
+    // Trigger animation
+    setTimeout(() => notification.classList.add('notification-show'), 10);
+    
+    // Auto remove after 8 seconds
     setTimeout(() => {
-        notification.classList.remove('show');
+        notification.classList.remove('notification-show');
+        notification.classList.add('notification-exit');
         setTimeout(() => notification.remove(), 300);
-    }, 3000);
+    }, 8000);
 }

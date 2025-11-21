@@ -953,4 +953,4 @@ function generarGraficaMembresias(membresias) {
 const selectPeriodo = document.getElementById('reportPeriodo');
 if (selectPeriodo) {
     selectPeriodo.addEventListener('change', loadReportes);
-}
+}   

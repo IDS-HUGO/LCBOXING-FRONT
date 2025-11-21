@@ -421,109 +421,49 @@
         </section>
 
         <!-- Reportes Section -->
-        <section id="section-reportes" class="content-section">
-            <div class="reports-header">
-                <h2><i class="fas fa-chart-bar"></i> Reportes y Estadísticas</h2>
-                <div class="reports-filters">
-                    <select id="reportPeriodo" class="filter-select">
-                        <option value="7">Últimos 7 días</option>
-                        <option value="30" selected>Último mes</option>
-                        <option value="90">Últimos 3 meses</option>
-                        <option value="365">Último año</option>
-                    </select>
-                    <button class="btn btn-primary" onclick="loadReportes()">
-                        <i class="fas fa-sync-alt"></i> Actualizar
-                    </button>
-                </div>
+        <!-- Reportes Section Simplificada -->
+<section id="section-reportes" class="content-section">
+    <div class="reports-header">
+        <h2><i class="fas fa-chart-bar"></i> Reportes Básicos</h2>
+        <div class="reports-filters">
+            <select id="reportPeriodo" class="filter-select">
+                <option value="7">Últimos 7 días</option>
+                <option value="30" selected>Último mes</option>
+                <option value="90">Últimos 3 meses</option>
+            </select>
+            <button class="btn btn-primary" onclick="loadReportes()">
+                <i class="fas fa-sync-alt"></i> Actualizar
+            </button>
+        </div>
+    </div>
+
+    <!-- Solo 2 Gráficas Grandes -->
+    <div class="charts-grid" style="grid-template-columns: 1fr 1fr; gap: 20px;">
+        
+        <!-- Gráfica 1: Ingresos (Lineal) -->
+        <div class="chart-card">
+            <div class="chart-header">
+                <h3><i class="fas fa-dollar-sign"></i> Historial de Ingresos</h3>
+                <span class="chart-total" id="totalIngresos">$0</span>
             </div>
-
-            <!-- Gráficas Principales -->
-            <div class="charts-grid">
-                <!-- Gráfica de Ingresos -->
-                <div class="chart-card">
-                    <div class="chart-header">
-                        <h3><i class="fas fa-dollar-sign"></i> Ingresos Mensuales</h3>
-                        <span class="chart-total" id="totalIngresos">$0</span>
-                    </div>
-                    <canvas id="ingresosChart"></canvas>
-                </div>
-
-                <!-- Gráfica de Asistencias -->
-                <div class="chart-card">
-                    <div class="chart-header">
-                        <h3><i class="fas fa-calendar-check"></i> Asistencias por Día</h3>
-                        <span class="chart-total" id="totalAsistencias">0</span>
-                    </div>
-                    <canvas id="asistenciasChart"></canvas>
-                </div>
-
-                <!-- Gráfica de Membresías por Tipo -->
-                <div class="chart-card">
-                    <div class="chart-header">
-                        <h3><i class="fas fa-id-card"></i> Membresías por Tipo</h3>
-                        <span class="chart-total" id="totalMembresias">0</span>
-                    </div>
-                    <canvas id="membresiasChart"></canvas>
-                </div>
-
-                <!-- Gráfica de Estado de Membresías -->
-                <div class="chart-card">
-                    <div class="chart-header">
-                        <h3><i class="fas fa-chart-pie"></i> Estado de Membresías</h3>
-                    </div>
-                    <canvas id="estadoMembresiasChart"></canvas>
-                </div>
-
-                <!-- Gráfica de Métodos de Pago -->
-                <div class="chart-card">
-                    <div class="chart-header">
-                        <h3><i class="fas fa-credit-card"></i> Métodos de Pago</h3>
-                    </div>
-                    <canvas id="metodosPagoChart"></canvas>
-                </div>
-
-                <!-- Gráfica de Atletas Nuevos -->
-                <div class="chart-card">
-                    <div class="chart-header">
-                        <h3><i class="fas fa-user-plus"></i> Atletas Nuevos</h3>
-                        <span class="chart-total" id="totalAtletasNuevos">0</span>
-                    </div>
-                    <canvas id="atletasChart"></canvas>
-                </div>
+            <div style="height: 300px;">
+                <canvas id="ingresosChart"></canvas>
             </div>
+        </div>
 
-            <!-- Estadísticas Detalladas -->
-            <div class="stats-detailed-grid">
-                <div class="stat-detail-card">
-                    <i class="fas fa-trophy"></i>
-                    <div>
-                        <h4>Atleta Más Asistente</h4>
-                        <p id="topAtleta">Cargando...</p>
-                    </div>
-                </div>
-                <div class="stat-detail-card">
-                    <i class="fas fa-clock"></i>
-                    <div>
-                        <h4>Hora Pico</h4>
-                        <p id="horaPico">Cargando...</p>
-                    </div>
-                </div>
-                <div class="stat-detail-card">
-                    <i class="fas fa-percent"></i>
-                    <div>
-                        <h4>Tasa de Asistencia</h4>
-                        <p id="tasaAsistencia">Cargando...</p>
-                    </div>
-                </div>
-                <div class="stat-detail-card">
-                    <i class="fas fa-calendar-times"></i>
-                    <div>
-                        <h4>Membresías por Vencer</h4>
-                        <p id="membresiasVencer">Cargando...</p>
-                    </div>
-                </div>
+        <!-- Gráfica 2: Membresías (Dona) -->
+        <div class="chart-card">
+            <div class="chart-header">
+                <h3><i class="fas fa-id-card"></i> Distribución de Membresías</h3>
+                <span class="chart-total" id="totalMembresias">0</span>
             </div>
-        </section>
+            <div style="height: 300px;">
+                <canvas id="membresiasChart"></canvas>
+            </div>
+        </div>
+
+    </div>
+</section>
     </main>
 
     <!-- Modals Container -->

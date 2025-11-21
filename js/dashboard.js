@@ -375,52 +375,36 @@ async function loadAtletas() {
     
     try {
         const atletas = await api.getAthletes();
-        console.log('📋 Atletas cargados:', atletas);
         
-        if (atletas.length === 0) {
+        if (!atletas || atletas.length === 0) {
             tbody.innerHTML = '<tr><td colspan="6" class="text-center">No hay atletas registrados</td></tr>';
         } else {
-            tbody.innerHTML = atletas.map(atleta => {
-                // Obtener ID del atleta
-                const id = atleta.idAtleta || atleta.id;
-                
-                // Construir nombre completo
-                const nombre = atleta.nombre || '';
-                const apellidoPaterno = atleta.apellidoPaterno || atleta.apellido_paterno || '';
-                const apellidoMaterno = atleta.apellidoMaterno || atleta.apellido_materno || '';
-                const nombreCompleto = `${nombre} ${apellidoPaterno} ${apellidoMaterno}`.trim();
-                
-                // Obtener email y teléfono
-                const email = atleta.email || 'N/A';
-                const telefono = atleta.telefono || 'N/A';
-                
-                // Convertir fechaNacimiento a formato legible
-                let fechaNacimiento = atleta.fechaNacimiento || atleta.fecha_nacimiento;
-                fechaNacimiento = formatearFecha(fechaNacimiento) || 'N/A';
-                
+            tbody.innerHTML = atletas.map(a => {
+                // Mapeo basado en tu JSON #1
+                const id = a.idAtleta;
+                const nombre = a.nombreCompleto || `${a.nombre} ${a.apellidoPaterno}`;
+                const email = a.email || 'Sin email';
+                const telefono = a.telefono || 'Sin teléfono';
+                const fechaNac = formatearFecha(a.fechaNacimiento);
+
                 return `
                 <tr>
-                    <td>${nombreCompleto}</td>
+                    <td>${id}</td>
+                    <td>${nombre}</td>
                     <td>${email}</td>
                     <td>${telefono}</td>
-                    <td>${fechaNacimiento}</td>
+                    <td>${fechaNac}</td>
                     <td>
-                        <button class="btn btn-sm btn-primary" onclick="openAtletaModal(${id})" title="Editar atleta">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="btn btn-sm btn-danger" onclick="deleteAtleta(${id})" title="Eliminar atleta">
-                            <i class="fas fa-trash"></i>
-                        </button>
+                        <button class="btn btn-sm btn-primary" onclick="openAtletaModal(${id})"><i class="fas fa-edit"></i></button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteAtleta(${id})"><i class="fas fa-trash"></i></button>
                     </td>
                 </tr>
             `;
             }).join('');
         }
-        
     } catch (error) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger">Error al cargar atletas</td></tr>';
-        console.error('❌ Error al cargar atletas:', error);
-        showNotification('Error al cargar atletas: ' + error.message, 'error');
+        console.error('Error cargando atletas:', error);
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger">Error al cargar datos</td></tr>';
     }
 }
 
@@ -445,80 +429,55 @@ async function loadMembresias() {
     const tbody = document.querySelector('#membresiasTable tbody');
     if (!tbody) return;
     
-    tbody.innerHTML = '<tr><td colspan="8" class="text-center"><div class="loading"><i class="fas fa-spinner fa-spin"></i> Cargando membresías...</div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" class="text-center"><div class="loading"><i class="fas fa-spinner fa-spin"></i> Cargando...</div></td></tr>';
     
     try {
         const membresias = await api.getMemberships();
-        console.log('📋 Membresías cargadas:', membresias);
         
-        if (membresias.length === 0) {
+        if (!membresias || membresias.length === 0) {
             tbody.innerHTML = '<tr><td colspan="8" class="text-center">No hay membresías registradas</td></tr>';
         } else {
             tbody.innerHTML = membresias.map(m => {
-                // Obtener ID
-                const id = m.idMembresia || m.id;
+                // Mapeo basado en tu JSON #2
+                const id = m.idMembresia;
+                const nombreAtleta = m.nombreAtleta || 'Desconocido';
+                const tipo = m.nombreTipo || 'N/A';
                 
-                // Obtener nombre del atleta
-                const nombreAtleta = m.nombreAtleta || m.nombre_atleta || `Atleta #${m.idAtleta || m.id_atleta || 'N/A'}`;
+                // Fechas vienen como números timestamp
+                const inicio = formatearFecha(m.fechaInicio);
+                const vencimiento = formatearFecha(m.fechaVencimiento);
                 
-                // Obtener tipo de membresía
-                const nombreTipo = m.nombreTipo || m.nombre_tipo || m.tipoMembresia || 'N/A';
+                const precio = parseFloat(m.precioPagado || 0).toFixed(2);
                 
-                // Convertir fechas si vienen como array, timestamp o string
-                let fechaInicio = m.fechaInicio || m.fecha_inicio;
-                if (Array.isArray(fechaInicio)) {
-                    fechaInicio = formatearFecha(fechaInicio);
-                } else if (typeof fechaInicio === 'number') {
-                    fechaInicio = formatearFecha(fechaInicio);
-                } else if (typeof fechaInicio === 'string' && fechaInicio.includes('-')) {
-                    fechaInicio = formatearFecha(fechaInicio);
-                } else if (!fechaInicio) {
-                    fechaInicio = 'N/A';
-                }
+                // Estado viene como "ACTIVA", "VENCIDA"
+                const estado = m.nombreEstado || 'N/A';
                 
-                let fechaVencimiento = m.fechaVencimiento || m.fecha_vencimiento;
-                if (Array.isArray(fechaVencimiento)) {
-                    fechaVencimiento = formatearFecha(fechaVencimiento);
-                } else if (typeof fechaVencimiento === 'number') {
-                    fechaVencimiento = formatearFecha(fechaVencimiento);
-                } else if (typeof fechaVencimiento === 'string' && fechaVencimiento.includes('-')) {
-                    fechaVencimiento = formatearFecha(fechaVencimiento);
-                } else if (!fechaVencimiento) {
-                    fechaVencimiento = 'N/A';
-                }
-                
-                // Obtener precio pagado (Sesiones)
-                const precioPagado = parseFloat(m.precioPagado || m.precio_pagado || 0).toFixed(2);
-                
-                // Obtener estado
-                const nombreEstado = m.nombreEstado || m.nombre_estado || 'N/A';
-                const statusClass = nombreEstado === 'Activa' ? 'success' : nombreEstado === 'Vencida' ? 'danger' : 'warning';
-                
+                // Lógica de colores basada en tu texto exacto
+                let badgeClass = 'secondary';
+                if (estado === 'ACTIVA') badgeClass = 'success';
+                else if (estado === 'VENCIDA') badgeClass = 'danger';
+                else if (estado === 'SUSPENDIDA') badgeClass = 'warning';
+
                 return `
                     <tr>
+                        <td>${id}</td>
                         <td>${nombreAtleta}</td>
-                        <td>${nombreTipo}</td>
-                        <td>${fechaInicio}</td>
-                        <td>${fechaVencimiento}</td>
-                        <td>$${precioPagado}</td>
-                        <td><span class="badge ${statusClass}">${nombreEstado}</span></td>
+                        <td>${tipo}</td>
+                        <td>${inicio}</td>
+                        <td>${vencimiento}</td>
+                        <td>$${precio}</td>
+                        <td><span class="badge ${badgeClass}">${estado}</span></td>
                         <td>
-                            <button class="btn btn-sm btn-primary" onclick="openMembresiaModal(${id})" title="Editar membresía">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="btn btn-sm btn-danger" onclick="deleteMembresia(${id})" title="Eliminar membresía">
-                                <i class="fas fa-trash"></i>
-                            </button>
+                            <button class="btn btn-sm btn-primary" onclick="openMembresiaModal(${id})"><i class="fas fa-edit"></i></button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteMembresia(${id})"><i class="fas fa-trash"></i></button>
                         </td>
                     </tr>
                 `;
             }).join('');
         }
-        
     } catch (error) {
-        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger">Error al cargar membresías</td></tr>';
-        console.error('❌ Error al cargar membresías:', error);
-        showNotification('Error al cargar membresías: ' + error.message, 'error');
+        console.error('Error memb:', error);
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger">Error al cargar datos</td></tr>';
     }
 }
 
@@ -543,51 +502,41 @@ async function loadPagos() {
     const tbody = document.querySelector('#pagosTable tbody');
     if (!tbody) return;
     
-    tbody.innerHTML = '<tr><td colspan="7" class="text-center"><div class="loading"><i class="fas fa-spinner fa-spin"></i> Cargando pagos...</div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" class="text-center"><div class="loading">Cargando...</div></td></tr>';
     
     try {
         const pagos = await api.getPayments();
-        console.log('Pagos cargados:', pagos);
         
-        if (pagos.length === 0) {
+        if (!pagos || pagos.length === 0) {
             tbody.innerHTML = '<tr><td colspan="7" class="text-center">No hay pagos registrados</td></tr>';
         } else {
             tbody.innerHTML = pagos.map(p => {
-                // Adaptar a los nombres de campos que devuelve el backend
-                const idPago = p.idPago || p.id;
-                const nombreAtleta = p.nombreAtleta || 'N/A';
-                const concepto = p.concepto || p.referencia || 'Pago de membresía';
+                // Mapeo basado en tu JSON #3
+                const id = p.idPago;
+                const nombreAtleta = p.nombreAtleta || 'Desconocido';
+                const concepto = p.concepto || 'Pago';
                 const monto = parseFloat(p.monto || 0).toFixed(2);
-                const nombreMetodo = p.nombreMetodo || p.metodoPago || 'N/A';
-                
-                // Formatear fecha correctamente
-                let fechaPago = p.fechaPago || p.fecha_pago;
-                if (fechaPago) {
-                    fechaPago = formatearFecha(fechaPago);
-                } else {
-                    fechaPago = 'N/A';
-                }
-                
+                const metodo = p.nombreMetodo || 'N/A'; // Ej: "EFECTIVO"
+                const fecha = formatearFecha(p.fechaPago); // Timestamp
+
                 return `
                     <tr>
+                        <td>${id}</td>
                         <td>${nombreAtleta}</td>
                         <td>${concepto}</td>
                         <td>$${monto}</td>
-                        <td>${nombreMetodo}</td>
-                        <td>${fechaPago}</td>
+                        <td>${metodo}</td>
+                        <td>${fecha}</td>
                         <td>
-                            <button class="btn btn-sm btn-danger" onclick="deletePago(${idPago})">
-                                <i class="fas fa-trash"></i>
-                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="deletePago(${id})"><i class="fas fa-trash"></i></button>
                         </td>
                     </tr>
                 `;
             }).join('');
         }
-        
     } catch (error) {
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger">Error al cargar pagos</td></tr>';
         console.error(error);
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger">Error al cargar datos</td></tr>';
     }
 }
 
@@ -612,49 +561,56 @@ async function loadAsistencias() {
     const tbody = document.querySelector('#asistenciasTable tbody');
     if (!tbody) return;
     
-    tbody.innerHTML = '<tr><td colspan="8" class="text-center"><div class="loading"><i class="fas fa-spinner fa-spin"></i> Cargando asistencias...</div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" class="text-center"><div class="loading">Cargando...</div></td></tr>';
     
     try {
-        const filterDate = document.getElementById('filterFechaAsistencia');
-        const fecha = filterDate ? filterDate.value : new Date().toISOString().split('T')[0];
+        // OJO: Asegúrate que api.getAttendanceByDate devuelva la lista filtrada correctamente
+        const filterDate = document.getElementById('filterFechaAsistencia').value || new Date().toISOString().split('T')[0];
+        const asistencias = await api.getAttendanceByDate(filterDate);
         
-        console.log('📅 Cargando asistencias para fecha:', fecha);
-        const asistencias = await api.getAttendanceByDate(fecha);
-        console.log('✅ Asistencias obtenidas:', asistencias);
-        
-        console.log('📝 Cantidad de asistencias:', asistencias.length);
-        
-        if (asistencias.length === 0) {
+        if (!asistencias || asistencias.length === 0) {
             tbody.innerHTML = '<tr><td colspan="8" class="text-center">No hay asistencias registradas</td></tr>';
         } else {
             tbody.innerHTML = asistencias.map(a => {
-                // Manejar diferentes formatos de respuesta del backend
-                const id = a.id || a.idAsistencia || a.id_asistencia;
-                const nombreAtleta = a.nombreAtleta || a.nombre_atleta || `Atleta #${a.idAtleta || a.id_atleta}`;
+                // Mapeo basado en tu JSON #4
+                const id = a.idAsistencia;
+                const nombreAtleta = a.nombreAtleta || 'Desconocido';
                 
-                // Convertir fecha si viene como array [2025, 11, 18] a string "2025-11-18"
-                let fecha = a.fecha || a.fechaAsistencia || a.fecha_asistencia;
-                if (Array.isArray(fecha)) {
-                    fecha = `${fecha[0]}-${String(fecha[1]).padStart(2, '0')}-${String(fecha[2]).padStart(2, '0')}`;
+                // El JSON trae Array [2025, 11, 21], formatearFecha lo maneja
+                const fecha = formatearFecha(a.fechaAsistencia);
+                
+                // Cortar los segundos de la hora (22:23:00 -> 22:23)
+                const entrada = a.horaEntrada ? a.horaEntrada.substring(0, 5) : '-';
+                const salida = a.horaSalida ? a.horaSalida.substring(0, 5) : null;
+                
+                // Calcular duración o usar la que viene si está bien
+                let duracion = '-';
+                if (salida) {
+                     // Si el backend ya te da duracionMinutos (lo vi en tu JSON: 53), úsalo
+                    if (a.duracionMinutos) {
+                        const h = Math.floor(a.duracionMinutos / 60);
+                        const m = a.duracionMinutos % 60;
+                        duracion = `${h}h ${m}m`;
+                    } else {
+                        duracion = calcularDuracion(entrada, salida);
+                    }
                 }
-                
-                const horaEntrada = a.horaEntrada || a.hora_entrada;
-                const horaSalida = a.horaSalida || a.hora_salida;
-                
-                const estado = horaSalida ? 'Completado' : 'En box';
-                const duracion = horaSalida ? calcularDuracion(horaEntrada, horaSalida) : '-';
-                
+
+                const estado = salida ? 'Completado' : 'En box';
+                const badgeClass = salida ? 'success' : 'warning';
+
                 return `
                     <tr>
+                        <td>${id}</td>
                         <td>${nombreAtleta}</td>
                         <td>${fecha}</td>
-                        <td>${horaEntrada ? horaEntrada.slice(0, 5) : '-'}</td>
-                        <td>${horaSalida ? horaSalida.slice(0, 5) : '-'}</td>
+                        <td>${entrada}</td>
+                        <td>${salida || '-'}</td>
                         <td>${duracion}</td>
-                        <td><span class="badge ${horaSalida ? 'success' : 'warning'}">${estado}</span></td>
+                        <td><span class="badge ${badgeClass}">${estado}</span></td>
                         <td>
-                            ${!horaSalida ? `
-                                <button class="btn btn-sm btn-warning" onclick="openSalidaModal(${id}, '${nombreAtleta}', '${horaEntrada ? horaEntrada.slice(0, 5) : ''}')">
+                            ${!salida ? `
+                                <button class="btn btn-sm btn-warning" onclick="openSalidaModal(${id}, '${nombreAtleta}', '${entrada}')">
                                     <i class="fas fa-sign-out-alt"></i> Salida
                                 </button>
                             ` : ''}
@@ -666,11 +622,20 @@ async function loadAsistencias() {
                 `;
             }).join('');
         }
-        
     } catch (error) {
-        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger">Error al cargar asistencias</td></tr>';
         console.error(error);
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger">Error al cargar datos</td></tr>';
     }
+}
+
+// Helper para duración si el backend no envía "duracionMinutos"
+function calcularDuracion(entrada, salida) {
+    const d1 = new Date(`2000-01-01T${entrada}:00`);
+    const d2 = new Date(`2000-01-01T${salida}:00`);
+    const diff = (d2 - d1) / 60000; // minutos
+    const h = Math.floor(diff / 60);
+    const m = Math.round(diff % 60);
+    return `${h}h ${m}m`;
 }
 
 function calcularDuracion(entrada, salida) {
@@ -834,75 +799,82 @@ if (searchAtleta) {
 // ===================================
 // REPORTES Y GRÁFICAS
 // ===================================
+// ===================================
+// REPORTES Y GRÁFICAS (SIMPLIFICADO)
+// ===================================
 let chartInstances = {};
 
 async function loadReportes() {
+    console.log("📊 Cargando reportes básicos...");
+    
     try {
         const periodo = document.getElementById('reportPeriodo')?.value || 30;
         
-        // Cargar datos
-        const [pagos, asistencias, membresias, atletas] = await Promise.all([
+        // 1. Cargar SOLO lo que sí funciona (Pagos y Membresías)
+        // Quitamos api.getAttendances() porque no existe esa función para traer todo el historial
+        const [pagos, membresias] = await Promise.all([
             api.getPayments(),
-            api.getAttendances(),
-            api.getMemberships(),
-            api.getAthletes()
+            api.getMemberships()
         ]);
+
+        console.log(`✅ Datos cargados: ${pagos.length} pagos, ${membresias.length} membresías`);
         
-        // Procesar datos para gráficas
+        // 2. Generar solo las 2 gráficas
         generarGraficaIngresos(pagos, periodo);
-        generarGraficaAsistencias(asistencias, periodo);
         generarGraficaMembresias(membresias);
-        generarGraficaEstadoMembresias(membresias);
-        generarGraficaMetodosPago(pagos);
-        generarGraficaAtletas(atletas, periodo);
-        generarEstadisticasDetalladas(asistencias, membresias, atletas);
         
     } catch (error) {
-        console.error('Error al cargar reportes:', error);
-        showNotification('❌ ERROR AL CARGAR REPORTES: ' + error.message, 'error');
+        console.error('❌ Error al cargar reportes:', error);
+        // No mostramos alert para no interrumpir, solo log
     }
 }
 
+// GRÁFICA 1: INGRESOS (Line Chart)
 function generarGraficaIngresos(pagos, periodo) {
     const ctx = document.getElementById('ingresosChart');
     if (!ctx) return;
     
-    // Filtrar por período
+    // Calcular fecha límite
     const fechaLimite = new Date();
-    fechaLimite.setDate(fechaLimite.getDate() - periodo);
+    fechaLimite.setDate(fechaLimite.getDate() - parseInt(periodo));
     
-    const pagosFiltrados = pagos.filter(p => {
-        const fecha = new Date(p.fecha || p.fechaPago);
-        return fecha >= fechaLimite;
-    });
-    
-    // Agrupar por día
+    // Filtrar y Agrupar
     const ingresosPorDia = {};
-    let totalIngresos = 0;
-    
-    pagosFiltrados.forEach(pago => {
-        const fecha = formatearFecha(pago.fecha || pago.fechaPago);
-        const monto = parseFloat(pago.monto) || 0;
+    let total = 0;
+
+    pagos.forEach(p => {
+        // Usamos la función formatearFecha que arreglamos antes
+        // Asegúrate que p.fechaPago sea el campo correcto del JSON (o p.fecha)
+        const timestamp = p.fechaPago || p.fecha; 
+        const fechaObj = new Date(timestamp);
         
-        if (!ingresosPorDia[fecha]) {
-            ingresosPorDia[fecha] = 0;
+        if (fechaObj >= fechaLimite) {
+            // Formato para la etiqueta: DD/MM
+            const dia = String(fechaObj.getDate()).padStart(2, '0');
+            const mes = String(fechaObj.getMonth() + 1).padStart(2, '0');
+            const label = `${dia}/${mes}`;
+            
+            const monto = parseFloat(p.monto || 0);
+            
+            if (!ingresosPorDia[label]) ingresosPorDia[label] = 0;
+            ingresosPorDia[label] += monto;
+            total += monto;
         }
-        ingresosPorDia[fecha] += monto;
-        totalIngresos += monto;
     });
-    
-    const labels = Object.keys(ingresosPorDia).sort();
-    const data = labels.map(label => ingresosPorDia[label]);
-    
-    // Actualizar total
-    document.getElementById('totalIngresos').textContent = `$${totalIngresos.toFixed(2)}`;
-    
-    // Destruir gráfica anterior si existe
-    if (chartInstances.ingresos) {
-        chartInstances.ingresos.destroy();
-    }
-    
-    // Crear gráfica
+
+    // Ordenar cronológicamente (truco simple ordenando claves)
+    // Nota: Esto asume que están en el mismo año. Para producción robusta usar librerías de fecha.
+    const labels = Object.keys(ingresosPorDia).sort(); // Orden básico
+    const data = labels.map(k => ingresosPorDia[k]);
+
+    // Actualizar total en pantalla
+    const totalElement = document.getElementById('totalIngresos');
+    if(totalElement) totalElement.textContent = `$${total.toFixed(2)}`;
+
+    // Destruir anterior si existe
+    if (chartInstances.ingresos) chartInstances.ingresos.destroy();
+
+    // Crear Chart
     chartInstances.ingresos = new Chart(ctx, {
         type: 'line',
         data: {
@@ -910,137 +882,47 @@ function generarGraficaIngresos(pagos, periodo) {
             datasets: [{
                 label: 'Ingresos ($)',
                 data: data,
-                borderColor: '#BF092F',
+                borderColor: '#BF092F', // Rojo de tu marca
                 backgroundColor: 'rgba(191, 9, 47, 0.1)',
-                tension: 0.4,
-                fill: true,
-                borderWidth: 3
+                borderWidth: 3,
+                tension: 0.3,
+                fill: true
             }]
         },
         options: {
             responsive: true,
-            maintainAspectRatio: true,
-            plugins: {
-                legend: {
-                    display: false
-                },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            return '$' + context.parsed.y.toFixed(2);
-                        }
-                    }
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        callback: function(value) {
-                            return '$' + value;
-                        }
-                    }
-                }
-            }
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true } }
         }
     });
 }
 
-function generarGraficaAsistencias(asistencias, periodo) {
-    const ctx = document.getElementById('asistenciasChart');
-    if (!ctx) return;
-    
-    // Filtrar por período
-    const fechaLimite = new Date();
-    fechaLimite.setDate(fechaLimite.getDate() - periodo);
-    
-    const asistenciasFiltradas = asistencias.filter(a => {
-        const fecha = new Date(a.fecha);
-        return fecha >= fechaLimite;
-    });
-    
-    // Agrupar por día
-    const asistenciasPorDia = {};
-    
-    asistenciasFiltradas.forEach(asistencia => {
-        const fecha = formatearFecha(asistencia.fecha);
-        if (!asistenciasPorDia[fecha]) {
-            asistenciasPorDia[fecha] = 0;
-        }
-        asistenciasPorDia[fecha]++;
-    });
-    
-    const labels = Object.keys(asistenciasPorDia).sort();
-    const data = labels.map(label => asistenciasPorDia[label]);
-    
-    // Actualizar total
-    document.getElementById('totalAsistencias').textContent = asistenciasFiltradas.length;
-    
-    // Destruir gráfica anterior
-    if (chartInstances.asistencias) {
-        chartInstances.asistencias.destroy();
-    }
-    
-    // Crear gráfica
-    chartInstances.asistencias = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Asistencias',
-                data: data,
-                backgroundColor: '#3B9797',
-                borderColor: '#16476A',
-                borderWidth: 2
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            plugins: {
-                legend: {
-                    display: false
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        stepSize: 1
-                    }
-                }
-            }
-        }
-    });
-}
-
+// GRÁFICA 2: MEMBRESÍAS (Doughnut Chart)
 function generarGraficaMembresias(membresias) {
     const ctx = document.getElementById('membresiasChart');
     if (!ctx) return;
-    
-    // Agrupar por tipo
-    const tipoMembresia = {};
+
+    // Agrupar por Tipo (Semanal, Mensual, etc.)
+    const conteo = {};
     
     membresias.forEach(m => {
-        const tipo = m.tipoMembresia || 'Desconocido';
-        if (!tipoMembresia[tipo]) {
-            tipoMembresia[tipo] = 0;
-        }
-        tipoMembresia[tipo]++;
+        const tipo = m.nombreTipo || m.tipoMembresia || 'Otro';
+        if (!conteo[tipo]) conteo[tipo] = 0;
+        conteo[tipo]++;
     });
-    
-    const labels = Object.keys(tipoMembresia);
-    const data = Object.values(tipoMembresia);
-    
+
+    const labels = Object.keys(conteo);
+    const data = Object.values(conteo);
+
     // Actualizar total
-    document.getElementById('totalMembresias').textContent = membresias.length;
-    
-    // Destruir gráfica anterior
-    if (chartInstances.membresias) {
-        chartInstances.membresias.destroy();
-    }
-    
-    // Crear gráfica
+    const totalElement = document.getElementById('totalMembresias');
+    if(totalElement) totalElement.textContent = membresias.length;
+
+    // Destruir anterior
+    if (chartInstances.membresias) chartInstances.membresias.destroy();
+
+    // Crear Chart
     chartInstances.membresias = new Chart(ctx, {
         type: 'doughnut',
         data: {
@@ -1048,299 +930,27 @@ function generarGraficaMembresias(membresias) {
             datasets: [{
                 data: data,
                 backgroundColor: [
-                    '#BF092F',
-                    '#132440',
-                    '#16476A',
-                    '#3B9797',
-                    '#28a745',
-                    '#ffc107'
+                    '#132440', // Azul oscuro
+                    '#BF092F', // Rojo
+                    '#3B9797', // Turquesa
+                    '#ffc107', // Amarillo
+                    '#6c757d'  // Gris
                 ],
-                borderWidth: 2,
-                borderColor: '#fff'
+                borderWidth: 1
             }]
         },
         options: {
             responsive: true,
-            maintainAspectRatio: true,
+            maintainAspectRatio: false,
             plugins: {
-                legend: {
-                    position: 'bottom'
-                }
+                legend: { position: 'right' }
             }
         }
     });
 }
 
-function generarGraficaEstadoMembresias(membresias) {
-    const ctx = document.getElementById('estadoMembresiasChart');
-    if (!ctx) return;
-    
-    // Contar por estado
-    const estados = {
-        'Activas': 0,
-        'Vencidas': 0,
-        'Suspendidas': 0
-    };
-    
-    const hoy = new Date();
-    
-    membresias.forEach(m => {
-        const vencimiento = new Date(m.fechaVencimiento || m.fecha_vencimiento);
-        
-        if (m.estado === 3 || m.estado === '3') {
-            estados['Suspendidas']++;
-        } else if (vencimiento < hoy) {
-            estados['Vencidas']++;
-        } else {
-            estados['Activas']++;
-        }
-    });
-    
-    // Destruir gráfica anterior
-    if (chartInstances.estadoMembresias) {
-        chartInstances.estadoMembresias.destroy();
-    }
-    
-    // Crear gráfica
-    chartInstances.estadoMembresias = new Chart(ctx, {
-        type: 'pie',
-        data: {
-            labels: Object.keys(estados),
-            datasets: [{
-                data: Object.values(estados),
-                backgroundColor: [
-                    '#28a745',
-                    '#dc3545',
-                    '#ffc107'
-                ],
-                borderWidth: 2,
-                borderColor: '#fff'
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            plugins: {
-                legend: {
-                    position: 'bottom'
-                }
-            }
-        }
-    });
+// Listener para cambio de filtro
+const selectPeriodo = document.getElementById('reportPeriodo');
+if (selectPeriodo) {
+    selectPeriodo.addEventListener('change', loadReportes);
 }
-
-function generarGraficaMetodosPago(pagos) {
-    const ctx = document.getElementById('metodosPagoChart');
-    if (!ctx) return;
-    
-    // Contar por método
-    const metodos = {};
-    const metodosNombre = {
-        1: 'Efectivo',
-        2: 'Tarjeta',
-        3: 'Transferencia'
-    };
-    
-    pagos.forEach(p => {
-        const metodo = metodosNombre[p.metodoPago] || metodosNombre[p.metodo_pago] || 'Otro';
-        if (!metodos[metodo]) {
-            metodos[metodo] = 0;
-        }
-        metodos[metodo]++;
-    });
-    
-    // Destruir gráfica anterior
-    if (chartInstances.metodosPago) {
-        chartInstances.metodosPago.destroy();
-    }
-    
-    // Crear gráfica
-    chartInstances.metodosPago = new Chart(ctx, {
-        type: 'polarArea',
-        data: {
-            labels: Object.keys(metodos),
-            datasets: [{
-                data: Object.values(metodos),
-                backgroundColor: [
-                    'rgba(191, 9, 47, 0.7)',
-                    'rgba(59, 151, 151, 0.7)',
-                    'rgba(22, 71, 106, 0.7)'
-                ],
-                borderWidth: 2,
-                borderColor: '#fff'
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            plugins: {
-                legend: {
-                    position: 'bottom'
-                }
-            }
-        }
-    });
-}
-
-function generarGraficaAtletas(atletas, periodo) {
-    const ctx = document.getElementById('atletasChart');
-    if (!ctx) return;
-    
-    // Filtrar atletas nuevos por período
-    const fechaLimite = new Date();
-    fechaLimite.setDate(fechaLimite.getDate() - periodo);
-    
-    const atletasNuevos = atletas.filter(a => {
-        const fechaRegistro = new Date(a.fechaRegistro || a.fecha_registro || Date.now());
-        return fechaRegistro >= fechaLimite;
-    });
-    
-    // Agrupar por semana
-    const atletasPorSemana = {};
-    
-    atletasNuevos.forEach(atleta => {
-        const fecha = new Date(atleta.fechaRegistro || atleta.fecha_registro || Date.now());
-        const semana = `Sem ${Math.ceil((fecha.getDate()) / 7)}`;
-        
-        if (!atletasPorSemana[semana]) {
-            atletasPorSemana[semana] = 0;
-        }
-        atletasPorSemana[semana]++;
-    });
-    
-    const labels = Object.keys(atletasPorSemana).sort();
-    const data = labels.map(label => atletasPorSemana[label]);
-    
-    // Actualizar total
-    document.getElementById('totalAtletasNuevos').textContent = atletasNuevos.length;
-    
-    // Destruir gráfica anterior
-    if (chartInstances.atletas) {
-        chartInstances.atletas.destroy();
-    }
-    
-    // Crear gráfica
-    chartInstances.atletas = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Atletas Nuevos',
-                data: data,
-                backgroundColor: '#132440',
-                borderColor: '#BF092F',
-                borderWidth: 2
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            plugins: {
-                legend: {
-                    display: false
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        stepSize: 1
-                    }
-                }
-            }
-        }
-    });
-}
-
-function generarEstadisticasDetalladas(asistencias, membresias, atletas) {
-    // Atleta más asistente
-    const asistenciasPorAtleta = {};
-    asistencias.forEach(a => {
-        const atletaId = a.idAtleta || a.id_atleta;
-        if (!asistenciasPorAtleta[atletaId]) {
-            asistenciasPorAtleta[atletaId] = 0;
-        }
-        asistenciasPorAtleta[atletaId]++;
-    });
-    
-    let maxAsistencias = 0;
-    let topAtletaId = null;
-    for (const id in asistenciasPorAtleta) {
-        if (asistenciasPorAtleta[id] > maxAsistencias) {
-            maxAsistencias = asistenciasPorAtleta[id];
-            topAtletaId = id;
-        }
-    }
-    
-    const topAtleta = atletas.find(a => (a.idAtleta || a.id) == topAtletaId);
-    const topAtletaEl = document.getElementById('topAtleta');
-    if (topAtletaEl && topAtleta) {
-        topAtletaEl.textContent = `${topAtleta.nombre} ${topAtleta.apellidoPaterno || ''} (${maxAsistencias} asistencias)`;
-    }
-    
-    // Hora pico (hora con más entradas)
-    const horasPico = {};
-    asistencias.forEach(a => {
-        if (a.horaEntrada || a.hora_entrada) {
-            const hora = (a.horaEntrada || a.hora_entrada).split(':')[0];
-            if (!horasPico[hora]) {
-                horasPico[hora] = 0;
-            }
-            horasPico[hora]++;
-        }
-    });
-    
-    let maxHora = 0;
-    let horaPico = '00:00';
-    for (const hora in horasPico) {
-        if (horasPico[hora] > maxHora) {
-            maxHora = horasPico[hora];
-            horaPico = `${hora}:00`;
-        }
-    }
-    
-    const horaPicoEl = document.getElementById('horaPico');
-    if (horaPicoEl) {
-        horaPicoEl.textContent = `${horaPico} hrs (${maxHora} entradas)`;
-    }
-    
-    // Tasa de asistencia
-    const membresiasTotales = membresias.length;
-    const asistenciasUltimos7Dias = asistencias.filter(a => {
-        const fecha = new Date(a.fecha);
-        const hace7Dias = new Date();
-        hace7Dias.setDate(hace7Dias.getDate() - 7);
-        return fecha >= hace7Dias;
-    }).length;
-    
-    const tasaAsistencia = membresiasTotales > 0 
-        ? ((asistenciasUltimos7Dias / (membresiasTotales * 7)) * 100).toFixed(1)
-        : 0;
-    
-    const tasaAsistenciaEl = document.getElementById('tasaAsistencia');
-    if (tasaAsistenciaEl) {
-        tasaAsistenciaEl.textContent = `${tasaAsistencia}% (últimos 7 días)`;
-    }
-    
-    // Membresías por vencer (próximos 7 días)
-    const hoy = new Date();
-    const en7Dias = new Date();
-    en7Dias.setDate(en7Dias.getDate() + 7);
-    
-    const porVencer = membresias.filter(m => {
-        const vencimiento = new Date(m.fechaVencimiento || m.fecha_vencimiento);
-        return vencimiento >= hoy && vencimiento <= en7Dias;
-    }).length;
-    
-    const membresiasVencerEl = document.getElementById('membresiasVencer');
-    if (membresiasVencerEl) {
-        membresiasVencerEl.textContent = `${porVencer} membresías`;
-    }
-}
-
-// Cargar reportes cuando se cambie el período
-const reportPeriodo = document.getElementById('reportPeriodo');
-if (reportPeriodo) {
-    reportPeriodo.addEventListener('change', loadReportes);
-}
-

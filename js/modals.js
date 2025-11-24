@@ -546,8 +546,26 @@ async function loadAtletaMembresias() {
             return;
         }
         
+        // Obtener todas las membresías que ya tienen pagos registrados
+        const todosLosPagos = await api.getPayments();
+        const membresiasPagadas = new Set(todosLosPagos.map(p => p.idMembresia));
+        
+        // Filtrar solo membresías que NO han sido pagadas
+        const membresiasSinPagar = membresias.filter(m => {
+            const idMemb = m.idMembresia || m.id;
+            return !membresiasPagadas.has(idMemb);
+        });
+        
+        console.log('Membresías sin pagar:', membresiasSinPagar.length);
+        
+        if (membresiasSinPagar.length === 0) {
+            select.innerHTML = '<option value="">Todas las membresías ya están pagadas</option>';
+            showNotification('✅ Este atleta no tiene membresías pendientes de pago', 'info');
+            return;
+        }
+        
         select.innerHTML = '<option value="">Seleccionar membresía...</option>';
-        membresias.forEach(m => {
+        membresiasSinPagar.forEach(m => {
             const option = document.createElement('option');
             // Usar idMembresia en lugar de id
             option.value = m.idMembresia || m.id;
@@ -556,7 +574,7 @@ async function loadAtletaMembresias() {
             const precio = m.precioPagado || m.costo || 0;
             const inicio = m.fechaInicio || '';
             const fin = m.fechaVencimiento || m.fechaFin || '';
-            option.textContent = `${tipo} - $${precio} (${inicio} a ${fin})`;
+            option.textContent = `${tipo} - $${precio} (${inicio} a ${fin}) - PENDIENTE`;
             option.setAttribute('data-costo', precio);
             select.appendChild(option);
         });
@@ -697,12 +715,29 @@ async function handleAsistenciaSubmit(e) {
         const membresias = await api.getMembershipsByAthlete(idAtleta);
         
         if (!membresias || membresias.length === 0) {
-            showNotification('⚠️ El atleta no tiene membresías activas', 'error');
+            showNotification('❌ El atleta no tiene membresías registradas', 'error');
             return;
         }
         
-        // Usar la membresía más reciente activa
-        const membresiaActiva = membresias.find(m => m.idEstadoMembresia === 1) || membresias[0];
+        // Buscar membresía activa (estado = 1)
+        const membresiaActiva = membresias.find(m => m.idEstadoMembresia === 1);
+        
+        if (!membresiaActiva) {
+            showNotification('❌ El atleta no tiene una membresía ACTIVA', 'error');
+            return;
+        }
+        
+        // VALIDAR QUE LA MEMBRESÍA ESTÉ PAGADA
+        const idMembresia = membresiaActiva.idMembresia || membresiaActiva.id;
+        const todosLosPagos = await api.getPayments();
+        const membresiaPagada = todosLosPagos.find(p => p.idMembresia === idMembresia);
+        
+        if (!membresiaPagada) {
+            showNotification('❌ No se puede registrar asistencia: La membresía NO está pagada', 'error');
+            return;
+        }
+        
+        console.log('✅ Membresía activa y pagada. Registrando asistencia...');
         
         // Obtener valores del formulario
         const horaEntrada = document.getElementById('asistenciaHoraEntrada').value;
@@ -1110,10 +1145,10 @@ function showNotification(message, type = 'info') {
     // Trigger animation
     setTimeout(() => notification.classList.add('notification-show'), 10);
     
-    // Auto remove after 8 seconds
+    // Auto remove after 5 seconds (5000 ms)
     setTimeout(() => {
         notification.classList.remove('notification-show');
         notification.classList.add('notification-exit');
         setTimeout(() => notification.remove(), 300);
-    }, 8000);
+    }, 5000);
 }

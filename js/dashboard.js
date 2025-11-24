@@ -409,7 +409,7 @@ async function loadAtletas() {
 }
 
 async function deleteAtleta(id) {
-    openConfirmModal('¿Está seguro de eliminar este atleta? Esta acción no se puede deshacer.', async function() {
+    openConfirmModal('¿Está seguro de eliminar este atleta? Esta acción eliminará también todas sus membresías, pagos y asistencias.', async function() {
         try {
             await api.deleteAthlete(id);
             showNotification('✅ ATLETA ELIMINADO CORRECTAMENTE', 'success');
@@ -724,16 +724,28 @@ async function loadUsuarios() {
     try {
         const usuarios = await api.getUsers();
         
-        if (usuarios.length === 0) {
+        // Aplicar filtro si existe
+        const filterRol = document.getElementById('filterRol')?.value;
+        let usuariosFiltrados = usuarios;
+        
+        if (filterRol) {
+            usuariosFiltrados = usuarios.filter(u => {
+                const idRol = u.idRol || u.id_rol || 2;
+                return idRol === parseInt(filterRol);
+            });
+        }
+        
+        if (usuariosFiltrados.length === 0) {
             tbody.innerHTML = '<tr><td colspan="7" class="text-center">No hay usuarios registrados</td></tr>';
         } else {
-            tbody.innerHTML = usuarios.map(u => {
+            tbody.innerHTML = usuariosFiltrados.map(u => {
                 // Manejar diferentes formatos de respuesta del backend
                 const id = u.idUsuario || u.id_usuario || u.id;
                 const nombre = u.nombre || '';
                 const apellidoPaterno = u.apellidoPaterno || u.apellido_paterno || '';
                 const apellidoMaterno = u.apellidoMaterno || u.apellido_materno || '';
                 const email = u.email || '';
+                const telefono = u.telefono || 'Sin teléfono';
                 const idRol = u.idRol || u.id_rol || 2;
                 const activo = u.activo !== undefined ? u.activo : true;
                 
@@ -747,15 +759,8 @@ async function loadUsuarios() {
                         <td>${email}</td>
                         <td><span class="badge ${idRol === 1 ? 'primary' : 'info'}">${rol}</span></td>
                         <td><span class="badge ${activo ? 'success' : 'secondary'}">${estado}</span></td>
+                        <td>${telefono}</td>
                         <td>-</td>
-                        <td>
-                            <button class="btn btn-sm btn-primary" onclick="openUsuarioModal(${id})">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="btn btn-sm btn-danger" onclick="deleteUsuario(${id})">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </td>
                     </tr>
                 `;
             }).join('');
